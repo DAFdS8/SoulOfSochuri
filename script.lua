@@ -111,3 +111,56 @@ for _, player in pairs(Players:GetPlayers()) do
 end
 
 print("✅ ESP ativado")
+local attackRange = 15 -- distância de ataque (studs)
+local biteCooldown = 2 -- em segundos (pode mudar com teclas)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local attackRange = 15 -- distância de ataque
+local biteCooldown = 2 -- segundos
+local canAttack = true
+
+-- Teclas para modificar cooldown
+UserInputService.InputBegan:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.J then
+		biteCooldown = math.max(0.1, biteCooldown - 0.1)
+		print("Novo Cooldown: " .. biteCooldown)
+	elseif input.KeyCode == Enum.KeyCode.K then
+		biteCooldown = biteCooldown + 0.1
+		print("Novo Cooldown: " .. biteCooldown)
+	end
+end)
+
+-- Função de ataque (ajuste para sua criatura se necessário)
+local function bite(target)
+	local char = LocalPlayer.Character
+	if not char or not target then return end
+	local attackEvent = char:FindFirstChildWhichIsA("RemoteEvent", true)
+	if attackEvent then
+		attackEvent:FireServer()
+	end
+end
+
+-- Kill Aura Loop
+RunService.RenderStepped:Connect(function()
+	if not canAttack then return end
+	local char = LocalPlayer.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+			local dist = (char.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+			if dist <= attackRange then
+				canAttack = false
+				bite(plr.Character)
+				task.delay(biteCooldown, function()
+					canAttack = true
+				end)
+			end
+		end
+	end
+end)
+
+print("✅ Kill Aura ativada. Use J/K pra diminuir/aumentar cooldown.")
