@@ -164,3 +164,33 @@ RunService.RenderStepped:Connect(function()
 end)
 
 print("✅ Kill Aura ativada. Use J/K pra diminuir/aumentar cooldown.")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+
+-- Tecla para ativar
+local breathKey = Enum.KeyCode.B -- aperte B pra atacar
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if input.KeyCode == breathKey then
+		local char = LocalPlayer.Character
+		if not char then return end
+
+		-- Procura o RemoteEvent correto (nome pode variar)
+		local foundEvent
+		for _, obj in pairs(char:GetDescendants()) do
+			if obj:IsA("RemoteEvent") and string.lower(obj.Name):find("breath") then
+				foundEvent = obj
+				break
+			end
+		end
+
+		if foundEvent then
+			foundEvent:FireServer(true)
+			print("🔥 Breath Attack ativado!")
+		else
+			warn("❌ Nenhum RemoteEvent de Breath encontrado!")
+		end
+	end
+end)
