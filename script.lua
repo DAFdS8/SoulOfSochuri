@@ -1,113 +1,163 @@
 --[[
-SoulOfSochuri GUI Script for Creatures of Sonaria
-By: DAFdS8 & ChatGPT
+SoulOfSochuri GUI Script for Creatures of Sonaria (Refeito)
+By: DAFdS8 & ChatGPT 😈
 --]]
 
--- Services
+-- Serviços
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Mouse = LocalPlayer:GetMouse()
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Config
+-- Criar GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SochuriGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 300, 0, 400)
+Main.Position = UDim2.new(0.02, 0, 0.25, 0)
+Main.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Main.BackgroundTransparency = 0.2
+Main.BorderSizePixel = 0
+Main.Parent = ScreenGui
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 8)
+UIListLayout.Parent = Main
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+function createLabel(text)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -20, 0, 20)
+    lbl.BackgroundTransparency = 1
+    lbl.TextColor3 = Color3.fromRGB(255,255,255)
+    lbl.Font = Enum.Font.SourceSansBold
+    lbl.TextSize = 16
+    lbl.Text = text
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = Main
+    return lbl
+end
+
+function createInput(name, default, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -20, 0, 30)
+    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    frame.BorderSizePixel = 0
+    frame.Name = name
+    frame.Parent = Main
+
+    local input = Instance.new("TextBox")
+    input.Size = UDim2.new(1, -10, 1, 0)
+    input.Position = UDim2.new(0, 5, 0, 0)
+    input.BackgroundTransparency = 1
+    input.Text = tostring(default)
+    input.Font = Enum.Font.SourceSans
+    input.TextColor3 = Color3.fromRGB(255, 255, 255)
+    input.TextSize = 16
+    input.Parent = frame
+
+    input.FocusLost:Connect(function()
+        local num = tonumber(input.Text)
+        if num then callback(num) end
+    end)
+end
+
+function createButton(text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -20, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 16
+    btn.Text = text
+    btn.Parent = Main
+
+    btn.MouseButton1Click:Connect(callback)
+end
+
+-- Variáveis
 local walkSpeed = 20
 local flySpeed = 100
 local biteCooldown = 2
-local attackRange = 15
-local killAuraActive = false
-local espActive = false
+local killAuraEnabled = false
+local espEnabled = false
 
--- GUI Setup
-local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "SoulOfSochuriGUI"
+-- Interface
+createLabel("Walk Speed:")
+createInput("WalkSpeedInput", walkSpeed, function(val)
+    walkSpeed = val
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = walkSpeed
+    end
+end)
 
-local Frame = Instance.new("Frame", ScreenGui)
-Frame.Position = UDim2.new(0.05, 0, 0.2, 0)
-Frame.Size = UDim2.new(0, 250, 0, 350)
-Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Frame.BorderSizePixel = 0
-Frame.BackgroundTransparency = 0.2
+createLabel("Fly Speed:")
+createInput("FlySpeedInput", flySpeed, function(val)
+    flySpeed = val
+end)
 
--- Utility function to create buttons
-local function createButton(name, position, text, callback)
-    local button = Instance.new("TextButton", Frame)
-    button.Name = name
-    button.Position = position
-    button.Size = UDim2.new(0, 230, 0, 30)
-    button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    button.TextColor3 = Color3.new(1, 1, 1)
-    button.Font = Enum.Font.SourceSansBold
-    button.TextSize = 16
-    button.Text = text
-    button.MouseButton1Click:Connect(callback)
-    return button
-end
+createLabel("Bite Cooldown:")
+createInput("BiteCooldownInput", biteCooldown, function(val)
+    biteCooldown = val
+end)
 
--- ESP
-local function toggleESP()
-    espActive = not espActive
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and not player.Character:FindFirstChild("ESP") then
-            local billboard = Instance.new("BillboardGui", player.Character)
-            billboard.Name = "ESP"
-            billboard.Adornee = player.Character:FindFirstChild("Head")
-            billboard.Size = UDim2.new(0, 100, 0, 40)
-            billboard.AlwaysOnTop = true
-            local label = Instance.new("TextLabel", billboard)
-            label.Size = UDim2.new(1, 0, 1, 0)
-            label.BackgroundTransparency = 1
-            label.Text = player.Name
-            label.TextColor3 = Color3.new(1, 0, 0)
-            label.TextStrokeTransparency = 0
-            label.TextScaled = true
-        elseif not espActive and player.Character:FindFirstChild("ESP") then
-            player.Character.ESP:Destroy()
+createButton("Fly Forward", function()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.Velocity = char.HumanoidRootPart.CFrame.LookVector * flySpeed
+    end
+end)
+
+createButton("Toggle ESP", function()
+    espEnabled = not espEnabled
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+            if espEnabled then
+                if not p.Character:FindFirstChild("ESP") then
+                    local esp = Instance.new("BillboardGui", p.Character)
+                    esp.Name = "ESP"
+                    esp.Adornee = p.Character.Head
+                    esp.Size = UDim2.new(0, 100, 0, 40)
+                    esp.AlwaysOnTop = true
+                    local text = Instance.new("TextLabel", esp)
+                    text.Size = UDim2.new(1, 0, 1, 0)
+                    text.BackgroundTransparency = 1
+                    text.Text = p.Name
+                    text.TextColor3 = Color3.new(1, 0, 0)
+                    text.TextScaled = true
+                end
+            else
+                if p.Character:FindFirstChild("ESP") then
+                    p.Character.ESP:Destroy()
+                end
+            end
         end
     end
-end
-
--- WalkSpeed
-createButton("SpeedBtn", UDim2.new(0, 10, 0, 10), "Set WalkSpeed ("..walkSpeed..")", function()
-    Character.Humanoid.WalkSpeed = walkSpeed
 end)
 
--- FlySpeed (Impulse Style)
-createButton("FlyBtn", UDim2.new(0, 10, 0, 50), "Fly Forward", function()
-    Character:FindFirstChild("HumanoidRootPart").Velocity = Character.HumanoidRootPart.CFrame.LookVector * flySpeed
+createButton("Toggle Kill Aura", function()
+    killAuraEnabled = not killAuraEnabled
 end)
 
--- Toggle ESP
-createButton("ESPBtn", UDim2.new(0, 10, 0, 90), "Toggle ESP", toggleESP)
-
--- Toggle Kill Aura
-createButton("KillAuraBtn", UDim2.new(0, 10, 0, 130), "Toggle Kill Aura", function()
-    killAuraActive = not killAuraActive
-end)
-
--- Bite Cooldown Down
-createButton("CooldownDown", UDim2.new(0, 10, 0, 170), "Cooldown -", function()
-    biteCooldown = math.max(0.1, biteCooldown - 0.1)
-end)
-
--- Bite Cooldown Up
-createButton("CooldownUp", UDim2.new(0, 10, 0, 210), "Cooldown +", function()
-    biteCooldown = biteCooldown + 0.1
-end)
-
--- Breath Attack
-createButton("BreathBtn", UDim2.new(0, 10, 0, 250), "Breath Attack", function()
-    local remotes = Character:FindFirstChild("Remotes")
-    if remotes and remotes:FindFirstChild("Breath") then
-        remotes.Breath:FireServer(true)
+createButton("Breath Attack", function()
+    local char = LocalPlayer.Character
+    local remote = char and char:FindFirstChild("Remotes") and char.Remotes:FindFirstChild("Breath")
+    if remote then
+        remote:FireServer(true)
     end
 end)
 
--- Multiplayer Breath Attack
-createButton("BreathAllBtn", UDim2.new(0, 10, 0, 290), "Breath Multiplayer", function()
+createButton("Breath Multiplayer", function()
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Remotes") then
-            p.Character.Remotes.Breath:FireServer(true)
+            local remote = p.Character.Remotes:FindFirstChild("Breath")
+            if remote then remote:FireServer(true) end
         end
     end
 end)
@@ -115,13 +165,14 @@ end)
 -- Kill Aura Loop
 spawn(function()
     while true do
-        if killAuraActive and Character and Character:FindFirstChild("Remotes") then
+        if killAuraEnabled then
+            local char = LocalPlayer.Character
+            local bite = char and char:FindFirstChild("Remotes") and char.Remotes:FindFirstChild("Bite")
             for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character and (p.Character:FindFirstChild("HumanoidRootPart")) then
-                    local dist = (Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
-                    if dist <= attackRange then
-                        local bite = Character.Remotes:FindFirstChild("Bite")
-                        if bite then bite:FireServer(true) end
+                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local dist = (char.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
+                    if dist <= 15 and bite then
+                        bite:FireServer(true)
                     end
                 end
             end
@@ -130,4 +181,4 @@ spawn(function()
     end
 end)
 
-print("SoulOfSochuri GUI loaded!")
+print("Sochuri GUI Loaded ✅")
