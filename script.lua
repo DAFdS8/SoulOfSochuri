@@ -194,3 +194,44 @@ UserInputService.InputBegan:Connect(function(input, gpe)
 		end
 	end
 end)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+
+-- Configurações
+local breathKey = Enum.KeyCode.N -- tecla para ativar multiplayer breath
+local range = 80 -- distância para atingir inimigos (em studs)
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+	if gpe or input.KeyCode ~= breathKey then return end
+
+	local char = LocalPlayer.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+	-- Procura o RemoteEvent
+	local foundEvent
+	for _, obj in pairs(char:GetDescendants()) do
+		if obj:IsA("RemoteEvent") and string.lower(obj.Name):find("breath") then
+			foundEvent = obj
+			break
+		end
+	end
+
+	if not foundEvent then
+		warn("❌ Nenhum RemoteEvent de Breath encontrado!")
+		return
+	end
+
+	-- Ataca todos os jogadores no alcance
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+			local dist = (char.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+			if dist <= range then
+				foundEvent:FireServer(true)
+				wait(0.1)
+			end
+		end
+	end
+
+	print("💨 Breath Multiplayer executado contra todos os alvos próximos!")
+end)
