@@ -64,3 +64,50 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 print("✅ Walkspeed e Fly ativados!")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local localPlayer = Players.LocalPlayer
+
+-- Remove ESP antigo
+for _, v in pairs(workspace:GetDescendants()) do
+	if v:IsA("BillboardGui") and v.Name == "ESP" then
+		v:Destroy()
+	end
+end
+
+-- Cria o ESP
+local function createESP(target)
+	if target:FindFirstChild("Head") and not target.Head:FindFirstChild("ESP") then
+		local esp = Instance.new("BillboardGui", target.Head)
+		esp.Name = "ESP"
+		esp.Size = UDim2.new(0, 100, 0, 40)
+		esp.AlwaysOnTop = true
+		esp.StudsOffset = Vector3.new(0, 2, 0)
+
+		local nameLabel = Instance.new("TextLabel", esp)
+		nameLabel.Size = UDim2.new(1, 0, 1, 0)
+		nameLabel.BackgroundTransparency = 1
+		nameLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+		nameLabel.TextStrokeTransparency = 0.5
+		nameLabel.TextScaled = true
+		nameLabel.Font = Enum.Font.SourceSansBold
+		nameLabel.Text = target.Name
+	end
+end
+
+-- Atualiza ESP em novos players
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(char)
+		wait(1)
+		createESP(char)
+	end)
+end)
+
+-- ESP nos já existentes
+for _, player in pairs(Players:GetPlayers()) do
+	if player ~= localPlayer and player.Character then
+		createESP(player.Character)
+	end
+end
+
+print("✅ ESP ativado")
