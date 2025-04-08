@@ -235,3 +235,189 @@ UserInputService.InputBegan:Connect(function(input, gpe)
 
 	print("💨 Breath Multiplayer executado contra todos os alvos próximos!")
 end)
+--[[ 
+🔥 Soul of Sochuri Script 🔥
+Sistema completo com:
+✅ Walkspeed & Fly Speed (teclas I e O)
+✅ ESP (ver jogadores)
+✅ Kill Aura com cooldown ajustável (teclas J e K)
+✅ Breath Attack (B)
+✅ Breath Multiplayer (N)
+--]]
+
+-- 🛠️ Configurações iniciais:
+local walkSpeed = 20
+local flySpeed = 100
+local attackRange = 15
+local biteCooldown = 2
+
+-- Serviços
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+-- ========================
+-- 1. Walkspeed & Fly Speed
+-- ========================
+UserInputService.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	local char = LocalPlayer.Character
+	if not char or not char:FindFirstChild("Humanoid") then return end
+
+	if input.KeyCode == Enum.KeyCode.I then
+		char.Humanoid.WalkSpeed = walkSpeed
+		print("🚶 WalkSpeed ajustado para " .. walkSpeed)
+	elseif input.KeyCode == Enum.KeyCode.O then
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			hrp.Velocity = hrp.CFrame.LookVector * flySpeed
+			print("🚀 Fly Speed ativado")
+		end
+	end
+end)
+
+-- ============
+-- 2. ESP
+-- ============
+for _, v in pairs(workspace:GetDescendants()) do
+	if v:IsA("BillboardGui") and v.Name == "ESP" then
+		v:Destroy()
+	end
+end
+
+local function createESP(target)
+	if target:FindFirstChild("Head") and not target.Head:FindFirstChild("ESP") then
+		local esp = Instance.new("BillboardGui", target.Head)
+		esp.Name = "ESP"
+		esp.Size = UDim2.new(0, 100, 0, 40)
+		esp.AlwaysOnTop = true
+		esp.StudsOffset = Vector3.new(0, 2, 0)
+
+		local nameLabel = Instance.new("TextLabel", esp)
+		nameLabel.Size = UDim2.new(1, 0, 1, 0)
+		nameLabel.BackgroundTransparency = 1
+		nameLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+		nameLabel.TextStrokeTransparency = 0.5
+		nameLabel.TextScaled = true
+		nameLabel.Font = Enum.Font.SourceSansBold
+		nameLabel.Text = target.Name
+	end
+end
+
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(char)
+		wait(1)
+		createESP(char)
+	end)
+end)
+
+for _, player in pairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer and player.Character then
+		createESP(player.Character)
+	end
+end
+
+-- ====================
+-- 3. Kill Aura + Cooldown
+-- ====================
+local canAttack = true
+
+UserInputService.InputBegan:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.J then
+		biteCooldown = math.max(0.1, biteCooldown - 0.1)
+		print("⏱️ Cooldown reduzido para: " .. biteCooldown)
+	elseif input.KeyCode == Enum.KeyCode.K then
+		biteCooldown = biteCooldown + 0.1
+		print("⏱️ Cooldown aumentado para: " .. biteCooldown)
+	end
+end)
+
+local function bite(target)
+	local char = LocalPlayer.Character
+	if not char or not target then return end
+	local attackEvent = char:FindFirstChildWhichIsA("RemoteEvent", true)
+	if attackEvent then
+		attackEvent:FireServer()
+	end
+end
+
+RunService.RenderStepped:Connect(function()
+	if not canAttack then return end
+	local char = LocalPlayer.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+			local dist = (char.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+			if dist <= attackRange then
+				canAttack = false
+				bite(plr.Character)
+				task.delay(biteCooldown, function()
+					canAttack = true
+				end)
+			end
+		end
+	end
+end)
+
+-- ========================
+-- 4. Breath Attack (Individual)
+-- ========================
+UserInputService.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if input.KeyCode == Enum.KeyCode.B then
+		local char = LocalPlayer.Character
+		if not char then return end
+
+		local foundEvent
+		for _, obj in pairs(char:GetDescendants()) do
+			if obj:IsA("RemoteEvent") and string.lower(obj.Name):find("breath") then
+				foundEvent = obj
+				break
+			end
+		end
+
+		if foundEvent then
+			foundEvent:FireServer(true)
+			print("🔥 Breath Attack ativado!")
+		else
+			warn("❌ Nenhum RemoteEvent de Breath encontrado!")
+		end
+	end
+end)
+
+-- =============================
+-- 5. Breath Attack Multiplayer
+-- =============================
+UserInputService.InputBegan:Connect(function(input, gpe)
+	if gpe or input.KeyCode ~= Enum.KeyCode.N then return end
+
+	local char = LocalPlayer.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+	local foundEvent
+	for _, obj in pairs(char:GetDescendants()) do
+		if obj:IsA("RemoteEvent") and string.lower(obj.Name):find("breath") then
+			foundEvent = obj
+			break
+		end
+	end
+
+	if not foundEvent then
+		warn("❌ Nenhum RemoteEvent de Breath encontrado!")
+		return
+	end
+
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+			local dist = (char.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+			if dist <= 80 then
+				foundEvent:FireServer(true)
+				wait(0.1)
+			end
+		end
+	end
+
+	print("💨 Breath Multiplayer executado!")
+end)
