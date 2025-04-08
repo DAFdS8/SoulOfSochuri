@@ -182,3 +182,17 @@ spawn(function()
 end)
 
 print("Sochuri GUI Loaded ✅")
+for i,v in pairs(getgc(true)) do
+    if typeof(v) == "function" and getfenv(v).script then
+        print("Função:", v, "-> Script:", getfenv(v).script:GetFullName())
+    end
+end
+for i,v in pairs(getgc(true)) do
+    if typeof(v) == "table" then
+        for key,val in pairs(v) do
+            if typeof(val) == "function" then
+                print("Possível função de combate:", key)
+            end
+        end
+    end
+end
